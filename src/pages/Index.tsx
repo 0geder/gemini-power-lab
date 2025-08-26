@@ -1,4 +1,4 @@
-import { PowerSystemsDashboard } from '@/components/PowerSystemsDashboard';
+import { PowerSystemsDashboard } from "@/components/PowerSystemsDashboard";
 
 const Index = () => {
   return <PowerSystemsDashboard />;

@@ -1,19 +1,18 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Zap, Activity, BarChart3, Settings } from 'lucide-react';
-import { GeminiProcessor } from './GeminiProcessor';
-import { DataValidator } from './DataValidator';
-import { ExampleData } from './ExampleData';
-import { ResultsDisplay } from './ResultsDisplay';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, CheckCircle2, Copy, Play, Settings, Zap } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { GeminiProcessor } from "./GeminiProcessor";
+import { DataValidator } from "./DataValidator";
+import { ExampleData } from "./ExampleData";
+import { ResultsDisplay } from "./ResultsDisplay";
 
-export interface PowerSystemsData {
+interface PowerData {
   voltage_L1: number[];
   voltage_L2: number[];
   voltage_L3: number[];
@@ -23,220 +22,216 @@ export interface PowerSystemsData {
   sampling_rate_hz: number;
 }
 
-export interface AnalysisResults {
-  rms_values: {
-    voltage_L1: number;
-    voltage_L2: number;
-    voltage_L3: number;
-    current_L1: number;
-    current_L2: number;
-    current_L3: number;
-  };
-  peak_values: {
-    voltage_L1: number;
-    voltage_L2: number;
-    voltage_L3: number;
-    current_L1: number;
-    current_L2: number;
-    current_L3: number;
-  };
-  frequency_hz: number;
-  phase_angles_degrees: {
-    voltage_L1_vs_current_L1: number;
-    voltage_L2_vs_current_L2: number;
-    voltage_L3_vs_current_L3: number;
-    voltage_L1_vs_voltage_L2: number;
-    voltage_L2_vs_voltage_L3: number;
-    voltage_L3_vs_voltage_L1: number;
-    current_L1_vs_current_L2: number;
-    current_L2_vs_current_L3: number;
-    current_L3_vs_current_L1: number;
-  };
-}
-
 const processingModes = [
-  { id: 'waveform', label: 'Waveform Analysis', icon: Activity, description: 'RMS, peak values, frequency detection' },
-  { id: 'power_quality', label: 'Power Quality', icon: BarChart3, description: 'Harmonics, THD, power factor calculations' },
-  { id: 'fault_detection', label: 'Fault Detection', icon: AlertCircle, description: 'Anomaly identification in three-phase systems' },
-  { id: 'load_analysis', label: 'Load Analysis', icon: Settings, description: 'Active, reactive, and apparent power calculations' }
+  {
+    id: "waveform",
+    name: "Waveform Analysis",
+    description: "RMS, peak values, frequency detection",
+    icon: "📊"
+  },
+  {
+    id: "power_quality",
+    name: "Power Quality",
+    description: "Harmonics, THD, power factor calculations",
+    icon: "⚡"
+  },
+  {
+    id: "fault_detection",
+    name: "Fault Detection",
+    description: "Anomaly identification in three-phase systems",
+    icon: "🔍"
+  },
+  {
+    id: "load_analysis",
+    name: "Load Analysis",
+    description: "Active, reactive, and apparent power calculations",
+    icon: "📈"
+  }
 ];
 
-export const PowerSystemsDashboard = () => {
-  const [apiKey, setApiKey] = useState('');
-  const [inputData, setInputData] = useState('');
-  const [processingMode, setProcessingMode] = useState('waveform');
+export function PowerSystemsDashboard() {
+  const [apiKey, setApiKey] = useState("AIzaSyAGnJcusdsjkfpE3veC3IAXMeaPBNZronU");
+  const [inputData, setInputData] = useState("");
+  const [selectedMode, setSelectedMode] = useState("waveform");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<AnalysisResults | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [validationResult, setValidationResult] = useState<{ isValid: boolean; errors: string[] }>({ isValid: false, errors: [] });
+  const [results, setResults] = useState(null);
+  const [validationStatus, setValidationStatus] = useState<"valid" | "invalid" | "empty">("empty");
+  const { toast } = useToast();
 
-  const handleDataValidation = (data: string) => {
-    setInputData(data);
-    const validation = DataValidator.validate(data);
-    setValidationResult(validation);
-    setError(null);
+  const handleDataValidation = (isValid: boolean) => {
+    setValidationStatus(isValid ? "valid" : "invalid");
   };
 
-  const handleProcess = async () => {
-    if (!apiKey.trim()) {
-      setError('Please enter your Gemini API key');
-      return;
-    }
-
-    if (!validationResult.isValid) {
-      setError('Please fix validation errors before processing');
+  const handleProcessData = async () => {
+    if (validationStatus !== "valid") {
+      toast({
+        title: "Invalid Data",
+        description: "Please provide valid JSON data before processing.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsProcessing(true);
-    setError(null);
-
     try {
-      const parsedData: PowerSystemsData = JSON.parse(inputData);
       const processor = new GeminiProcessor(apiKey);
-      const analysisResults = await processor.analyze(parsedData, processingMode);
-      setResults(analysisResults);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Processing failed');
+      const parsedData: PowerData = JSON.parse(inputData);
+      const result = await processor.processData(parsedData, selectedMode);
+      setResults(result);
+      toast({
+        title: "Processing Complete",
+        description: "Power systems analysis completed successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleExampleLoad = (exampleData: PowerSystemsData) => {
-    setInputData(JSON.stringify(exampleData, null, 2));
-    handleDataValidation(JSON.stringify(exampleData, null, 2));
+  const loadExampleData = (data: string) => {
+    setInputData(data);
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-lg">
-              <Zap className="w-6 h-6 text-primary-foreground" />
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 rounded-lg bg-gradient-primary">
+              <Zap className="h-8 w-8 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Gemini AI Power Systems Dashboard</h1>
-              <p className="text-muted-foreground">Advanced three-phase electrical analysis powered by Google's Gemini AI</p>
-            </div>
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Gemini Power Lab
+            </h1>
           </div>
+          <p className="text-xl text-muted-foreground">
+            AI-Powered Three-Phase Electrical Systems Analysis
+          </p>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* API Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>API Configuration</CardTitle>
-            <CardDescription>Enter your Google Gemini API key to enable processing</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="api-key">Gemini API Key</Label>
-              <Input
-                id="api-key"
-                type="password"
-                placeholder="Enter your Gemini API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="font-mono"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Processing Mode Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Analysis Mode</CardTitle>
-            <CardDescription>Select the type of electrical analysis to perform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {processingModes.map((mode) => {
-                const Icon = mode.icon;
-                const isSelected = processingMode === mode.id;
-                return (
-                  <Button
-                    key={mode.id}
-                    variant={isSelected ? "default" : "outline"}
-                    className={`h-auto p-4 flex flex-col items-center gap-2 ${isSelected ? 'animate-pulse-glow' : ''}`}
-                    onClick={() => setProcessingMode(mode.id)}
-                  >
-                    <Icon className="w-6 h-6" />
-                    <div className="text-center">
-                      <div className="font-semibold">{mode.label}</div>
-                      <div className="text-xs opacity-80">{mode.description}</div>
-                    </div>
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Data Input */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Three-Phase Data Input</CardTitle>
-                <CardDescription>
-                  Enter your electrical waveform data in JSON format
-                </CardDescription>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Configuration Panel */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="bg-gradient-card border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <CardTitle>Configuration</CardTitle>
+                </div>
+                <CardDescription>API settings and processing mode</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="data-input">JSON Data</Label>
+                  <Label>Gemini API Key</Label>
                   <Textarea
-                    id="data-input"
-                    placeholder="Paste your three-phase electrical data here..."
-                    value={inputData}
-                    onChange={(e) => handleDataValidation(e.target.value)}
-                    className="min-h-[300px] font-mono text-sm"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your Gemini API key"
+                    className="h-20 resize-none"
                   />
                 </div>
-
-                {/* Validation Status */}
-                <div className="flex items-center gap-2">
-                  <Badge variant={validationResult.isValid ? "default" : "destructive"}>
-                    {validationResult.isValid ? "Valid Format" : "Invalid Format"}
-                  </Badge>
-                  {validationResult.errors.length > 0 && (
-                    <div className="text-sm text-destructive">
-                      {validationResult.errors.join(", ")}
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  onClick={handleProcess}
-                  disabled={!validationResult.isValid || !apiKey.trim() || isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? "Processing..." : "Analyze Data"}
-                </Button>
-
-                {error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive rounded-md">
-                    <p className="text-sm text-destructive">{error}</p>
+                
+                <div className="space-y-2">
+                  <Label>Processing Mode</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {processingModes.map((mode) => (
+                      <Button
+                        key={mode.id}
+                        variant={selectedMode === mode.id ? "default" : "secondary"}
+                        className="justify-start h-auto p-3"
+                        onClick={() => setSelectedMode(mode.id)}
+                      >
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span>{mode.icon}</span>
+                            <span className="font-medium">{mode.name}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {mode.description}
+                          </div>
+                        </div>
+                      </Button>
+                    ))}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Example Data */}
-            <ExampleData onLoadExample={handleExampleLoad} />
+            <ExampleData onLoadExample={loadExampleData} />
           </div>
 
-          {/* Results Display */}
-          <div>
-            <ResultsDisplay results={results} isProcessing={isProcessing} />
+          {/* Data Input Panel */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-gradient-card border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Three-Phase Data Input</CardTitle>
+                    <Badge 
+                      variant={validationStatus === "valid" ? "default" : validationStatus === "invalid" ? "destructive" : "secondary"}
+                      className="ml-2"
+                    >
+                      {validationStatus === "valid" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {validationStatus === "invalid" && <AlertCircle className="h-3 w-3 mr-1" />}
+                      {validationStatus === "valid" ? "Valid" : validationStatus === "invalid" ? "Invalid" : "No Data"}
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={handleProcessData}
+                    disabled={isProcessing || validationStatus !== "valid"}
+                    className="shadow-glow-primary"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Analyze Data
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <CardDescription>
+                  Input your three-phase electrical data in JSON format
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Textarea
+                    value={inputData}
+                    onChange={(e) => setInputData(e.target.value)}
+                    placeholder={`{
+  "voltage_L1": [120.5, 121.0, 119.8, ...],
+  "voltage_L2": [120.2, 120.8, 119.9, ...],
+  "voltage_L3": [120.0, 120.3, 120.1, ...],
+  "current_L1": [15.2, 15.1, 15.3, ...],
+  "current_L2": [15.0, 15.2, 15.1, ...],
+  "current_L3": [15.1, 15.0, 15.2, ...],
+  "sampling_rate_hz": 1000
+}`}
+                    className="h-64 font-mono text-sm"
+                  />
+                  <DataValidator data={inputData} onValidation={handleDataValidation} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results Display */}
+            {results && (
+              <ResultsDisplay results={results} />
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-};
+}

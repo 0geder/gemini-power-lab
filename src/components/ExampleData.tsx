@@ -1,122 +1,105 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { FileText, Download } from 'lucide-react';
-import { PowerSystemsData } from './PowerSystemsDashboard';
-import { DataValidator } from './DataValidator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Database, Download } from "lucide-react";
 
 interface ExampleDataProps {
-  onLoadExample: (data: PowerSystemsData) => void;
+  onLoadExample: (data: string) => void;
 }
 
-export const ExampleData = ({ onLoadExample }: ExampleDataProps) => {
-  const examples = [
-    {
-      id: 'balanced',
-      name: 'Balanced Three-Phase System',
-      description: 'Normal balanced operation with 50Hz frequency',
-      data: DataValidator.createExample()
-    },
-    {
-      id: 'unbalanced',
-      name: 'Unbalanced System',
-      description: 'System with voltage unbalance on L2 phase',
-      data: (() => {
-        const base = DataValidator.createExample();
-        // Reduce voltage on L2 by 10%
-        base.voltage_L2 = base.voltage_L2.map(v => v * 0.9);
-        return base;
-      })()
-    },
-    {
-      id: 'harmonic',
-      name: 'System with Harmonics',
-      description: 'Contains 3rd and 5th harmonic distortion',
-      data: (() => {
-        const base = DataValidator.createExample();
-        const samplingRate = base.sampling_rate_hz;
-        const samples = base.voltage_L1.length;
-        const time = Array.from({ length: samples }, (_, i) => i / samplingRate);
-        
-        // Add harmonics to voltage
-        base.voltage_L1 = base.voltage_L1.map((v, i) => 
-          v + 0.1 * v * Math.sin(2 * Math.PI * 150 * time[i]) + 0.05 * v * Math.sin(2 * Math.PI * 250 * time[i])
-        );
-        return base;
-      })()
+const exampleDatasets = [
+  {
+    name: "Balanced Three-Phase System",
+    description: "Perfect 120° phase separation, 60Hz",
+    data: {
+      voltage_L1: Array.from({ length: 100 }, (_, i) => 120 * Math.sin(2 * Math.PI * 60 * i / 1000)),
+      voltage_L2: Array.from({ length: 100 }, (_, i) => 120 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3)),
+      voltage_L3: Array.from({ length: 100 }, (_, i) => 120 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3)),
+      current_L1: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 - Math.PI / 6)),
+      current_L2: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3 - Math.PI / 6)),
+      current_L3: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3 - Math.PI / 6)),
+      sampling_rate_hz: 1000
     }
-  ];
+  },
+  {
+    name: "Unbalanced System with Harmonics",
+    description: "Voltage imbalance with 3rd harmonic content",
+    data: {
+      voltage_L1: Array.from({ length: 100 }, (_, i) => 
+        122 * Math.sin(2 * Math.PI * 60 * i / 1000) + 5 * Math.sin(2 * Math.PI * 180 * i / 1000)
+      ),
+      voltage_L2: Array.from({ length: 100 }, (_, i) => 
+        118 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3) + 3 * Math.sin(2 * Math.PI * 180 * i / 1000)
+      ),
+      voltage_L3: Array.from({ length: 100 }, (_, i) => 
+        121 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3) + 4 * Math.sin(2 * Math.PI * 180 * i / 1000)
+      ),
+      current_L1: Array.from({ length: 100 }, (_, i) => 16.2 * Math.sin(2 * Math.PI * 60 * i / 1000 - Math.PI / 4)),
+      current_L2: Array.from({ length: 100 }, (_, i) => 14.8 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3 - Math.PI / 4)),
+      current_L3: Array.from({ length: 100 }, (_, i) => 15.5 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3 - Math.PI / 4)),
+      sampling_rate_hz: 1000
+    }
+  },
+  {
+    name: "High Frequency Transient",
+    description: "System with switching transients",
+    data: {
+      voltage_L1: Array.from({ length: 100 }, (_, i) => {
+        const base = 120 * Math.sin(2 * Math.PI * 60 * i / 1000);
+        const transient = i < 20 ? 10 * Math.exp(-i/5) * Math.sin(2 * Math.PI * 1000 * i / 1000) : 0;
+        return base + transient;
+      }),
+      voltage_L2: Array.from({ length: 100 }, (_, i) => {
+        const base = 120 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3);
+        const transient = i < 20 ? 8 * Math.exp(-i/5) * Math.sin(2 * Math.PI * 1000 * i / 1000) : 0;
+        return base + transient;
+      }),
+      voltage_L3: Array.from({ length: 100 }, (_, i) => {
+        const base = 120 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3);
+        const transient = i < 20 ? 12 * Math.exp(-i/5) * Math.sin(2 * Math.PI * 1000 * i / 1000) : 0;
+        return base + transient;
+      }),
+      current_L1: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 - Math.PI / 6)),
+      current_L2: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 - 2 * Math.PI / 3 - Math.PI / 6)),
+      current_L3: Array.from({ length: 100 }, (_, i) => 15 * Math.sin(2 * Math.PI * 60 * i / 1000 + 2 * Math.PI / 3 - Math.PI / 6)),
+      sampling_rate_hz: 1000
+    }
+  }
+];
 
-  const handleLoadExample = (exampleData: PowerSystemsData) => {
-    onLoadExample(exampleData);
-  };
-
-  const handleDownloadExample = (data: PowerSystemsData, filename: string) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+export function ExampleData({ onLoadExample }: ExampleDataProps) {
+  const loadExample = (dataset: typeof exampleDatasets[0]) => {
+    const jsonString = JSON.stringify(dataset.data, null, 2);
+    onLoadExample(jsonString);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Example Datasets
-        </CardTitle>
-        <CardDescription>
-          Load pre-configured three-phase electrical data for testing
-        </CardDescription>
+    <Card className="bg-gradient-card border-border">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Database className="h-5 w-5 text-primary" />
+          <CardTitle>Example Datasets</CardTitle>
+        </div>
+        <CardDescription>Load predefined electrical system scenarios</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {examples.map((example) => (
-            <div key={example.id} className="p-4 border rounded-lg space-y-3">
-              <div>
-                <h4 className="font-medium">{example.name}</h4>
-                <p className="text-sm text-muted-foreground">{example.description}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleLoadExample(example.data)}
-                >
-                  Load Data
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleDownloadExample(example.data, example.id)}
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Download
-                </Button>
-              </div>
+      <CardContent className="space-y-3">
+        {exampleDatasets.map((dataset, index) => (
+          <div key={index} className="space-y-2">
+            <div>
+              <h4 className="font-medium text-sm">{dataset.name}</h4>
+              <p className="text-xs text-muted-foreground">{dataset.description}</p>
             </div>
-          ))}
-        </div>
-        
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">Expected JSON Format:</h4>
-          <pre className="text-xs text-muted-foreground overflow-x-auto">
-{`{
-  "voltage_L1": [array of numbers],
-  "voltage_L2": [array of numbers],
-  "voltage_L3": [array of numbers],
-  "current_L1": [array of numbers],
-  "current_L2": [array of numbers],
-  "current_L3": [array of numbers],
-  "sampling_rate_hz": number
-}`}
-          </pre>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => loadExample(dataset)}
+            >
+              <Download className="h-3 w-3 mr-2" />
+              Load Dataset
+            </Button>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
-};
+}
