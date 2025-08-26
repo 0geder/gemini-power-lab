@@ -68,6 +68,19 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+				'tech-grid': 'linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)',
+			},
+			backgroundSize: {
+				'tech-grid': '20px 20px',
+			},
+			boxShadow: {
+				'tech': '0 0 20px rgba(34, 197, 94, 0.3)',
+				'tech-lg': '0 0 40px rgba(34, 197, 94, 0.4)',
+				'neon': '0 0 5px hsl(var(--tech-green)), 0 0 10px hsl(var(--tech-green)), 0 0 15px hsl(var(--tech-green))',
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {
@@ -84,11 +97,20 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'pulse-glow': {
+					'0%, 100%': {
+						boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)',
+					},
+					'50%': {
+						boxShadow: '0 0 40px rgba(34, 197, 94, 0.6)',
+					},
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 			}
 		}
 	},
