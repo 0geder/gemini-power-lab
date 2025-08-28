@@ -50,7 +50,6 @@ const processingModes = [
 ];
 
 export function PowerSystemsDashboard() {
-  const [apiKey, setApiKey] = useState("AIzaSyAGnJcusdsjkfpE3veC3IAXMeaPBNZronU");
   const [inputData, setInputData] = useState("");
   const [selectedMode, setSelectedMode] = useState("waveform");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -74,7 +73,7 @@ export function PowerSystemsDashboard() {
 
     setIsProcessing(true);
     try {
-      const processor = new GeminiProcessor(apiKey);
+      const processor = new GeminiProcessor();
       const parsedData: PowerData = JSON.parse(inputData);
       const result = await processor.processData(parsedData, selectedMode);
       setResults(result);
@@ -127,16 +126,6 @@ export function PowerSystemsDashboard() {
                 <CardDescription>API settings and processing mode</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Gemini API Key</Label>
-                  <Textarea
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Gemini API key"
-                    className="h-20 resize-none"
-                  />
-                </div>
-                
                 <div className="space-y-2">
                   <Label>Processing Mode</Label>
                   <div className="grid grid-cols-1 gap-2">
