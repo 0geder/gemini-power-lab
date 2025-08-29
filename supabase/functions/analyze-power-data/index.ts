@@ -16,6 +16,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url, options);
+
+    if (res.status !== 429) return res; // success or other error
+
+    const error = await res.json();
+    const retryDelay = error?.error?.details?.find((d: any) => d['@type']?.includes("RetryInfo"))?.retryDelay;
+
+    const delayMs = retryDelay
+      ? parseFloat(retryDelay) * 1000
+      : 1000 * Math.pow(2, i); // exponential backoff
+
+    console.warn(`Quota hit (429). Retrying in ${delayMs}ms...`);
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  throw new Error("Gemini API quota exceeded after retries");
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,31 +49,35 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
+    const model = "gemini-1.5-flash"; // safer for testing, switch to pro when ready
     const prompt = generatePrompt(data, mode);
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + geminiApiKey, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            topK: 1,
+            topP: 1,
+            maxOutputTokens: 4096,
           }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          topK: 1,
-          topP: 1,
-          maxOutputTokens: 4096,
-        }
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
