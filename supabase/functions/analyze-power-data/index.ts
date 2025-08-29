@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const prompt = generatePrompt(data, mode);
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + geminiApiKey, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + geminiApiKey, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ serve(async (req) => {
           temperature: 0.1,
           topK: 1,
           topP: 1,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
         }
       }),
     });
@@ -59,7 +59,9 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText);
-      throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`);
+      console.error('Request URL:', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent');
+      console.error('API Key configured:', !!geminiApiKey);
+      throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}. Details: ${errorText}`);
     }
 
     const result = await response.json();
