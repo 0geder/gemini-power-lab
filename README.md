@@ -23,7 +23,7 @@ The AI Power Systems Analyzer processes raw electrical measurements from three-p
 
 ### Backend Infrastructure
 - **Supabase Edge Functions** for serverless backend processing
-- **Google Gemini 1.5 Pro** for AI-powered electrical analysis
+- **Google Gemini 1.5 Flash** for fast, AI-powered electrical analysis
 - **Supabase Client** for secure API communication
 
 ### Security Architecture
@@ -62,31 +62,35 @@ The application accepts three-phase electrical data in JSON format:
 - **Sampling Rate Check**: Verifies sampling rate is specified and reasonable
 
 #### Step 2: AI Analysis Selection
-Four specialized analysis modes available:
+Four specialized analysis modes available, each providing targeted insights:
 
 **🌊 Waveform Analysis**
-- Fundamental frequency extraction
-- Harmonic content analysis
-- Waveform symmetry assessment
-- Peak and RMS calculations
+- Calculate True RMS and Peak values for all voltage and current waveforms
+- Determine the fundamental frequency of the system
+- Calculate phase angles between all voltage and current pairs
+- Determine the phase sequence (positive/ABC)
+- Basic waveform characteristics and symmetry analysis
 
 **⚡ Power Quality**
-- Total Harmonic Distortion (THD) calculation
-- Voltage unbalance analysis
-- Flicker and voltage variation detection
-- Power factor assessment
+- Calculate Voltage and Current THD (Total Harmonic Distortion) for each phase
+- Identify top 3 dominant harmonics (3rd, 5th, 7th) and their magnitudes
+- Calculate voltage and current unbalance percentages
+- Detailed notes on observed distortions, notches, or swells
+- Power quality metrics and recommendations
 
 **🚨 Fault Detection**
-- Ground fault identification
-- Phase loss detection
-- Overcurrent condition analysis
-- Abnormal phase relationships
+- Analyze waveforms for transients, sags, swells, or interruptions
+- Check for severe phase unbalance in voltage and current
+- Identify signs of short circuits (high current spikes) or open circuits (zero current)
+- Provide clear fault characteristics and recommendations
+- Highlight any potential system issues
 
 **📊 Load Analysis**
-- Load type classification (resistive, inductive, capacitive)
-- Load balancing assessment
-- Demand analysis
-- Efficiency calculations
+- Calculate Active Power (kW), Reactive Power (kVAR), and Apparent Power (kVA)
+- Analyze Power Factor for each phase and total system
+- Determine load type (inductive, capacitive, or resistive)
+- Provide power factor correction recommendations if below 0.95
+- Load characteristics and efficiency analysis
 
 #### Step 3: Secure AI Processing
 ```typescript

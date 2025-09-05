@@ -125,7 +125,7 @@ serve(async (req) => {
 });
 
 function generatePrompt(data: PowerData, mode: string): string {
-  // Calculate some basic statistics to help the AI
+  // Stats calculation remains the same...
   const calculateStats = (arr: number[]) => ({
     min: Math.min(...arr).toFixed(3),
     max: Math.max(...arr).toFixed(3),
@@ -139,107 +139,109 @@ function generatePrompt(data: PowerData, mode: string): string {
   const i2Stats = calculateStats(data.current_L2);
   const i3Stats = calculateStats(data.current_L3);
 
-  return `
-# Three-Phase Power System Analysis
-
-## System Parameters
-- Sampling Rate: ${data.sampling_rate_hz} Hz
-- Samples per cycle: ${Math.round(data.sampling_rate_hz / 50)} (assuming 50Hz system)
-- Total duration: ${(data.voltage_L1.length / data.sampling_rate_hz).toFixed(3)} seconds
-
-## Input Data Summary
-### Voltage (V)
-- L1: ${data.voltage_L1.length} samples (min: ${v1Stats.min}V, max: ${v1Stats.max}V, avg: ${v1Stats.avg}V)
-- L2: ${data.voltage_L2.length} samples (min: ${v2Stats.min}V, max: ${v2Stats.max}V, avg: ${v2Stats.avg}V)
-- L3: ${data.voltage_L3.length} samples (min: ${v3Stats.min}V, max: ${v3Stats.max}V, avg: ${v3Stats.avg}V)
-
-### Current (A)
-- L1: ${data.current_L1.length} samples (min: ${i1Stats.min}A, max: ${i1Stats.max}A, avg: ${i1Stats.avg}A)
-- L2: ${data.current_L2.length} samples (min: ${i2Stats.min}A, max: ${i2Stats.max}A, avg: ${i2Stats.avg}A)
-- L3: ${data.current_L3.length} samples (min: ${i3Stats.min}A, max: ${i3Stats.max}A, avg: ${i3Stats.avg}A)
-
-## Analysis Request
-Perform a detailed three-phase power system analysis with the following requirements:
-
-### Calculations
-1. **RMS Values**: Calculate using the complete dataset
-2. **Peak Values**: Identify absolute maximum values
-3. **Frequency Analysis**: Use zero-crossing or FFT method
-4. **Phase Angles**: Calculate between all voltage and current pairs
-5. **Power Calculations**: Include active, reactive, and apparent power
-6. **Power Factor**: Calculate for each phase and total
-7. **Harmonic Analysis**: If possible, identify any significant harmonics
-
-### Expected Output Format
-{
-  "rms_values": {
-    "voltage": {"L1": 230.5, "L2": 229.8, "L3": 231.2, "units": "V"},
-    "current": {"L1": 10.2, "L2": 10.1, "L3": 10.3, "units": "A"},
-    "line_to_line_voltage": {"L12": 398.4, "L23": 399.1, "L31": 398.8, "units": "V"}
-  },
-  "frequency_hz": 50.02,
-  "phase_sequence": "positive",
-  "phase_angles_degrees": {
-    "voltage": {"L1_L2": 120.1, "L2_L3": 119.9, "L3_L1": 120.0},
-    "current": {"L1_L2": 120.3, "L2_L3": 119.7, "L3_L1": 120.0},
-    "power_factor": {"L1": 0.98, "L2": 0.97, "L3": 0.99}
-  },
-  "power_analysis": {
-    "active_power": {"L1": 2.15, "L2": 2.12, "L3": 2.18, "total": 6.45, "units": "kW"},
-    "reactive_power": {"L1": 0.43, "L2": 0.45, "L3": 0.41, "total": 1.29, "units": "kVAR"},
-    "apparent_power": {"L1": 2.19, "L2": 2.16, "L3": 2.22, "total": 6.57, "units": "kVA"},
-    "power_factor": {"L1": 0.98, "L2": 0.98, "L3": 0.98, "total": 0.98}
-  },
-  "quality_metrics": {
-    "voltage_unbalance": 0.8,
-    "current_unbalance": 1.2,
-    "thd_voltage": {"L1": 1.2, "L2": 1.3, "L3": 1.1, "units": "%"},
-    "thd_current": {"L1": 3.5, "L2": 3.7, "L3": 3.3, "units": "%"}
-  },
-  "analysis_notes": {
-    "data_quality": "Good quality data with minimal noise",
-    "observations": [
-      "Slight voltage unbalance detected (0.8%)",
-      "Current THD is within acceptable limits (<5%)",
-      "Power factor is close to unity"
-    ],
-    "recommendations": [
-      "Monitor voltage unbalance over time",
-      "Consider power factor correction if loads increase"
-    ]
-  },
-  "calculation_methods": {
-    "rms": "True RMS calculation using complete dataset",
-    "frequency": "Calculated using zero-crossing detection with interpolation",
-    "phase_angles": "Calculated using cross-correlation method",
-    "power": "Calculated using P = Vrms * Irms * cos(θ), Q = Vrms * Irms * sin(θ)",
-    "harmonics": "FFT analysis with Hanning window"
-  },
-  "confidence_scores": {
-    "overall_quality": 0.92,
-    "voltage_analysis": 0.95,
-    "current_analysis": 0.93,
-    "power_analysis": 0.94
+  // --- DYNAMIC PROMPT SECTION ---
+  let analysisInstructions = '';
+  switch (mode) {
+    case 'power_quality':
+      analysisInstructions = `
+        Focus on power quality metrics.
+        1. Calculate Voltage and Current THD (Total Harmonic Distortion) for each phase.
+        2. Identify the top 3 dominant harmonics (e.g., 3rd, 5th, 7th) and their magnitudes if present.
+        3. Calculate voltage and current unbalance percentages.
+        4. Provide detailed notes on any observed distortions, notches, or swells.
+      `;
+      break;
+    case 'fault_detection':
+      analysisInstructions = `
+        Focus on fault and anomaly detection.
+        1. Analyze waveforms for any transients, sags, swells, or interruptions.
+        2. Check for severe phase unbalance in both voltage and current.
+        3. Look for signs of short circuits (high current spikes) or open circuits (zero current on one phase).
+        4. In the 'analysis_notes', clearly state if a fault is suspected and describe its characteristics.
+      `;
+      break;
+    case 'load_analysis':
+      analysisInstructions = `
+        Focus on a detailed load analysis.
+        1. Calculate Active Power (kW), Reactive Power (kVAR), and Apparent Power (kVA) for each phase and the total.
+        2. Calculate the Power Factor for each phase and the total system.
+        3. Determine if the overall load is inductive, capacitive, or resistive.
+        4. Provide recommendations for power factor correction if it is below 0.95.
+      `;
+      break;
+    case 'waveform':
+    default:
+      analysisInstructions = `
+        Focus on fundamental waveform characteristics.
+        1. Calculate True RMS and Peak values for all voltage and current waveforms.
+        2. Determine the fundamental frequency of the system.
+        3. Calculate the phase angles between all voltage and current pairs.
+        4. Determine the phase sequence (e.g., positive/ABC).
+      `;
+      break;
   }
-}
 
-## Important Notes
-1. All values must be calculated with appropriate precision (3 decimal places for voltages and currents)
-2. Include units for all measurements
-3. Flag any potential data quality issues
-4. Provide confidence scores for key measurements
-5. If any calculations are not possible, explain why and provide best estimates
-6. Include relevant technical observations and recommendations
+  return `
+    # Three-Phase Power System Analysis
 
-## Data Sample (first 5 points for reference)
-### Voltage (V)
-- L1: [${data.voltage_L1.slice(0, 5).join(', ')}]
-- L2: [${data.voltage_L2.slice(0, 5).join(', ')}]
-- L3: [${data.voltage_L3.slice(0, 5).join(', ')}]
+    ## System Parameters
+    - Sampling Rate: ${data.sampling_rate_hz} Hz
+    - Total duration: ${(data.voltage_L1.length / data.sampling_rate_hz).toFixed(3)} seconds
 
-### Current (A)
-- L1: [${data.current_L1.slice(0, 5).join(', ')}]
-- L2: [${data.current_L2.slice(0, 5).join(', ')}]
-- L3: [${data.current_L3.slice(0, 5).join(', ')}]
-`;
+    ## Input Data Summary
+    ### Voltage (V)
+    - L1: ${data.voltage_L1.length} samples (min: ${v1Stats.min}V, max: ${v1Stats.max}V, avg: ${v1Stats.avg}V)
+    - L2: ${data.voltage_L2.length} samples (min: ${v2Stats.min}V, max: ${v2Stats.max}V, avg: ${v2Stats.avg}V)
+    - L3: ${data.voltage_L3.length} samples (min: ${v3Stats.min}V, max: ${v3Stats.max}V, avg: ${v3Stats.avg}V)
+    ### Current (A)
+    - L1: ${data.current_L1.length} samples (min: ${i1Stats.min}A, max: ${i1Stats.max}A, avg: ${i1Stats.avg}A)
+    - L2: ${data.current_L2.length} samples (min: ${i2Stats.min}A, max: ${i2Stats.max}A, avg: ${i2Stats.avg}A)
+    - L3: ${data.current_L3.length} samples (min: ${i3Stats.min}A, max: ${i3Stats.max}A, avg: ${i3Stats.avg}A)
+
+    ## Analysis Request
+    You are an expert power systems analysis AI. Based on the **'${mode}'** analysis mode, perform the following focused analysis.
+    
+    ### Focused Instructions for '${mode}' mode:
+    ${analysisInstructions}
+
+    ## Expected Output Format
+    Provide your complete analysis in a single, valid JSON object. The structure below is a comprehensive example; populate all fields with your calculated values. If a value cannot be determined, use 'null' and explain why in the 'analysis_notes'.
+    {
+      "rms_values": {
+        "voltage": {"L1": value, "L2": value, "L3": value, "units": "V"},
+        "current": {"L1": value, "L2": value, "L3": value, "units": "A"},
+        "line_to_line_voltage": {"L12": value, "L23": value, "L31": value, "units": "V"}
+      },
+      "frequency_hz": value,
+      "phase_sequence": "positive | negative | unknown",
+      "power_analysis": {
+        "active_power": {"L1": value, "L2": value, "L3": value, "total": value, "units": "kW"},
+        "reactive_power": {"L1": value, "L2": value, "L3": value, "total": value, "units": "kVAR"},
+        "apparent_power": {"L1": value, "L2": value, "L3": value, "total": value, "units": "kVA"},
+        "power_factor": {"L1": value, "L2": value, "L3": value, "total": value}
+      },
+      "quality_metrics": {
+        "voltage_unbalance_percent": value,
+        "current_unbalance_percent": value,
+        "thd_voltage": {"L1": value, "L2": value, "L3": value, "units": "%"},
+        "thd_current": {"L1": value, "L2": value, "L3": value, "units": "%"}
+      },
+      "analysis_notes": {
+        "summary": "A brief, one-sentence summary of the system's condition.",
+        "observations": ["Key finding 1.", "Key finding 2."],
+        "recommendations": ["Actionable recommendation 1."]
+      }
+    }
+
+    ## Data Sample (first 5 points for reference)
+    ### Voltage (V)
+    - L1: [${data.voltage_L1.slice(0, 5).join(', ')}]
+    - L2: [${data.voltage_L2.slice(0, 5).join(', ')}]
+    - L3: [${data.voltage_L3.slice(0, 5).join(', ')}]
+
+    ### Current (A)
+    - L1: [${data.current_L1.slice(0, 5).join(', ')}]
+    - L2: [${data.current_L2.slice(0, 5).join(', ')}]
+    - L3: [${data.current_L3.slice(0, 5).join(', ')}]
+  `;
 }
