@@ -125,61 +125,121 @@ serve(async (req) => {
 });
 
 function generatePrompt(data: PowerData, mode: string): string {
+  // Calculate some basic statistics to help the AI
+  const calculateStats = (arr: number[]) => ({
+    min: Math.min(...arr).toFixed(3),
+    max: Math.max(...arr).toFixed(3),
+    avg: (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(3)
+  });
+
+  const v1Stats = calculateStats(data.voltage_L1);
+  const v2Stats = calculateStats(data.voltage_L2);
+  const v3Stats = calculateStats(data.voltage_L3);
+  const i1Stats = calculateStats(data.current_L1);
+  const i2Stats = calculateStats(data.current_L2);
+  const i3Stats = calculateStats(data.current_L3);
+
   return `
-You are an expert electrical engineer specializing in three-phase power systems analysis. 
+# Three-Phase Power System Analysis
 
-Analyze the following three-phase electrical data and provide a structured JSON response with precise calculations.
-
-Input Data:
-- Voltage L1: ${data.voltage_L1.slice(0, 10).join(', ')}... (${data.voltage_L1.length} samples)
-- Voltage L2: ${data.voltage_L2.slice(0, 10).join(', ')}... (${data.voltage_L2.length} samples)
-- Voltage L3: ${data.voltage_L3.slice(0, 10).join(', ')}... (${data.voltage_L3.length} samples)
-- Current L1: ${data.current_L1.slice(0, 10).join(', ')}... (${data.current_L1.length} samples)
-- Current L2: ${data.current_L2.slice(0, 10).join(', ')}... (${data.current_L2.length} samples)
-- Current L3: ${data.current_L3.slice(0, 10).join(', ')}... (${data.current_L3.length} samples)
+## System Parameters
 - Sampling Rate: ${data.sampling_rate_hz} Hz
+- Samples per cycle: ${Math.round(data.sampling_rate_hz / 50)} (assuming 50Hz system)
+- Total duration: ${(data.voltage_L1.length / data.sampling_rate_hz).toFixed(3)} seconds
 
-Processing Mode: ${mode}
+## Input Data Summary
+### Voltage (V)
+- L1: ${data.voltage_L1.length} samples (min: ${v1Stats.min}V, max: ${v1Stats.max}V, avg: ${v1Stats.avg}V)
+- L2: ${data.voltage_L2.length} samples (min: ${v2Stats.min}V, max: ${v2Stats.max}V, avg: ${v2Stats.avg}V)
+- L3: ${data.voltage_L3.length} samples (min: ${v3Stats.min}V, max: ${v3Stats.max}V, avg: ${v3Stats.avg}V)
 
-IMPORTANT: Return ONLY a valid JSON object with the following structure:
+### Current (A)
+- L1: ${data.current_L1.length} samples (min: ${i1Stats.min}A, max: ${i1Stats.max}A, avg: ${i1Stats.avg}A)
+- L2: ${data.current_L2.length} samples (min: ${i2Stats.min}A, max: ${i2Stats.max}A, avg: ${i2Stats.avg}A)
+- L3: ${data.current_L3.length} samples (min: ${i3Stats.min}A, max: ${i3Stats.max}A, avg: ${i3Stats.avg}A)
 
+## Analysis Request
+Perform a detailed three-phase power system analysis with the following requirements:
+
+### Calculations
+1. **RMS Values**: Calculate using the complete dataset
+2. **Peak Values**: Identify absolute maximum values
+3. **Frequency Analysis**: Use zero-crossing or FFT method
+4. **Phase Angles**: Calculate between all voltage and current pairs
+5. **Power Calculations**: Include active, reactive, and apparent power
+6. **Power Factor**: Calculate for each phase and total
+7. **Harmonic Analysis**: If possible, identify any significant harmonics
+
+### Expected Output Format
 {
   "rms_values": {
-    "voltage_L1": <calculated_rms_value>,
-    "voltage_L2": <calculated_rms_value>,
-    "voltage_L3": <calculated_rms_value>,
-    "current_L1": <calculated_rms_value>,
-    "current_L2": <calculated_rms_value>,
-    "current_L3": <calculated_rms_value>
+    "voltage": {"L1": 230.5, "L2": 229.8, "L3": 231.2, "units": "V"},
+    "current": {"L1": 10.2, "L2": 10.1, "L3": 10.3, "units": "A"},
+    "line_to_line_voltage": {"L12": 398.4, "L23": 399.1, "L31": 398.8, "units": "V"}
   },
-  "peak_values": {
-    "voltage_L1": <calculated_peak_value>,
-    "voltage_L2": <calculated_peak_value>,
-    "voltage_L3": <calculated_peak_value>,
-    "current_L1": <calculated_peak_value>,
-    "current_L2": <calculated_peak_value>,
-    "current_L3": <calculated_peak_value>
-  },
-  "frequency_hz": <calculated_frequency>,
+  "frequency_hz": 50.02,
+  "phase_sequence": "positive",
   "phase_angles_degrees": {
-    "voltage_L1_vs_current_L1": <calculated_phase_angle>,
-    "voltage_L2_vs_current_L2": <calculated_phase_angle>,
-    "voltage_L3_vs_current_L3": <calculated_phase_angle>,
-    "voltage_L1_vs_voltage_L2": <calculated_phase_angle>,
-    "voltage_L2_vs_voltage_L3": <calculated_phase_angle>,
-    "voltage_L3_vs_voltage_L1": <calculated_phase_angle>,
-    "current_L1_vs_current_L2": <calculated_phase_angle>,
-    "current_L2_vs_current_L3": <calculated_phase_angle>,
-    "current_L3_vs_current_L1": <calculated_phase_angle>
+    "voltage": {"L1_L2": 120.1, "L2_L3": 119.9, "L3_L1": 120.0},
+    "current": {"L1_L2": 120.3, "L2_L3": 119.7, "L3_L1": 120.0},
+    "power_factor": {"L1": 0.98, "L2": 0.97, "L3": 0.99}
   },
-  "analysis_summary": "<brief_technical_summary>",
-  "power_calculations": {
-    "active_power_kw": <calculated_value>,
-    "reactive_power_kvar": <calculated_value>,
-    "apparent_power_kva": <calculated_value>,
-    "power_factor": <calculated_value>
+  "power_analysis": {
+    "active_power": {"L1": 2.15, "L2": 2.12, "L3": 2.18, "total": 6.45, "units": "kW"},
+    "reactive_power": {"L1": 0.43, "L2": 0.45, "L3": 0.41, "total": 1.29, "units": "kVAR"},
+    "apparent_power": {"L1": 2.19, "L2": 2.16, "L3": 2.22, "total": 6.57, "units": "kVA"},
+    "power_factor": {"L1": 0.98, "L2": 0.98, "L3": 0.98, "total": 0.98}
+  },
+  "quality_metrics": {
+    "voltage_unbalance": 0.8,
+    "current_unbalance": 1.2,
+    "thd_voltage": {"L1": 1.2, "L2": 1.3, "L3": 1.1, "units": "%"},
+    "thd_current": {"L1": 3.5, "L2": 3.7, "L3": 3.3, "units": "%"}
+  },
+  "analysis_notes": {
+    "data_quality": "Good quality data with minimal noise",
+    "observations": [
+      "Slight voltage unbalance detected (0.8%)",
+      "Current THD is within acceptable limits (<5%)",
+      "Power factor is close to unity"
+    ],
+    "recommendations": [
+      "Monitor voltage unbalance over time",
+      "Consider power factor correction if loads increase"
+    ]
+  },
+  "calculation_methods": {
+    "rms": "True RMS calculation using complete dataset",
+    "frequency": "Calculated using zero-crossing detection with interpolation",
+    "phase_angles": "Calculated using cross-correlation method",
+    "power": "Calculated using P = Vrms * Irms * cos(θ), Q = Vrms * Irms * sin(θ)",
+    "harmonics": "FFT analysis with Hanning window"
+  },
+  "confidence_scores": {
+    "overall_quality": 0.92,
+    "voltage_analysis": 0.95,
+    "current_analysis": 0.93,
+    "power_analysis": 0.94
   }
 }
 
-Calculate all values using standard electrical engineering formulas and provide accurate numerical results.`;
+## Important Notes
+1. All values must be calculated with appropriate precision (3 decimal places for voltages and currents)
+2. Include units for all measurements
+3. Flag any potential data quality issues
+4. Provide confidence scores for key measurements
+5. If any calculations are not possible, explain why and provide best estimates
+6. Include relevant technical observations and recommendations
+
+## Data Sample (first 5 points for reference)
+### Voltage (V)
+- L1: [${data.voltage_L1.slice(0, 5).join(', ')}]
+- L2: [${data.voltage_L2.slice(0, 5).join(', ')}]
+- L3: [${data.voltage_L3.slice(0, 5).join(', ')}]
+
+### Current (A)
+- L1: [${data.current_L1.slice(0, 5).join(', ')}]
+- L2: [${data.current_L2.slice(0, 5).join(', ')}]
+- L3: [${data.current_L3.slice(0, 5).join(', ')}]
+`;
 }
