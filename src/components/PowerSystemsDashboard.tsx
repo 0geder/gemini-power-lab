@@ -62,6 +62,9 @@ export function PowerSystemsDashboard() {
   };
 
   const handleProcessData = async () => {
+    console.log("Starting data processing...");
+    console.log("Validation status:", validationStatus);
+    
     if (validationStatus !== "valid") {
       toast({
         title: "Invalid Data",
@@ -73,15 +76,24 @@ export function PowerSystemsDashboard() {
 
     setIsProcessing(true);
     try {
+      console.log("Creating GeminiProcessor...");
       const processor = new GeminiProcessor();
+      
+      console.log("Parsing input data...");
       const parsedData: PowerData = JSON.parse(inputData);
+      console.log("Parsed data:", parsedData);
+      
+      console.log("Processing with mode:", selectedMode);
       const result = await processor.processData(parsedData, selectedMode);
+      console.log("Got result:", result);
+      
       setResults(result);
       toast({
         title: "Processing Complete",
         description: "Power systems analysis completed successfully.",
       });
     } catch (error) {
+      console.error("Processing error:", error);
       toast({
         title: "Processing Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
