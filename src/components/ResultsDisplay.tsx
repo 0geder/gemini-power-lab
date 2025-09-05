@@ -4,12 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, BarChart3, Zap, Activity, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 
 interface ResultsDisplayProps {
   results: any;
+  rawData?: any;
 }
 
-export function ResultsDisplay({ results }: ResultsDisplayProps) {
+export function ResultsDisplay({ results, rawData }: ResultsDisplayProps) {
   const { toast } = useToast();
 
   const copyToClipboard = (data: any) => {
@@ -24,6 +27,37 @@ export function ResultsDisplay({ results }: ResultsDisplayProps) {
     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
     return `${value.toFixed(decimals)} ${unit}`.trim();
   };
+  // Prepare waveform data for charts
+  const buildWaveformData = (raw: any) => {
+    if (!raw || !raw.voltage_L1 || !raw.sampling_rate_hz) return null;
+    const fs = raw.sampling_rate_hz;
+    const n = Math.min(
+      raw.voltage_L1.length,
+      raw.voltage_L2?.length || 0,
+      raw.voltage_L3?.length || 0,
+      raw.current_L1?.length || 0,
+      raw.current_L2?.length || 0,
+      raw.current_L3?.length || 0
+    );
+    const maxPoints = 1000;
+    const step = Math.max(1, Math.floor(n / maxPoints));
+    const data = [] as any[];
+    for (let i = 0; i < n; i += step) {
+      data.push({
+        i,
+        t: i / fs,
+        v1: raw.voltage_L1[i],
+        v2: raw.voltage_L2[i],
+        v3: raw.voltage_L3[i],
+        i1: raw.current_L1[i],
+        i2: raw.current_L2[i],
+        i3: raw.current_L3[i],
+      });
+    }
+    return data;
+  };
+
+  const waveformData = buildWaveformData(rawData);
 
   return (
     <Card className="bg-gradient-card border-border">
@@ -48,12 +82,73 @@ export function ResultsDisplay({ results }: ResultsDisplayProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="rms">RMS Values</TabsTrigger>
             <TabsTrigger value="phase">Phase Analysis</TabsTrigger>
             <TabsTrigger value="power">Power Metrics</TabsTrigger>
+            <TabsTrigger value="waveforms">Waveforms</TabsTrigger>
           </TabsList>
+
+          {waveformData ? (
+            <TabsContent value="waveforms" className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 gap-6">
+                <Card className="bg-secondary/50 border-border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Voltage Waveforms</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        v1: { label: 'VL1', color: 'hsl(var(--primary))' },
+                        v2: { label: 'VL2', color: 'hsl(var(--secondary))' },
+                        v3: { label: 'VL3', color: 'hsl(var(--muted-foreground))' },
+                      }}
+                      className="h-64"
+                    >
+                      <LineChart data={waveformData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="t" tickFormatter={(v) => `${v.toFixed(3)}s`} />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                        <Line type="monotone" dataKey="v1" stroke="hsl(var(--primary))" dot={false} name="VL1" />
+                        <Line type="monotone" dataKey="v2" stroke="hsl(var(--secondary))" dot={false} name="VL2" />
+                        <Line type="monotone" dataKey="v3" stroke="hsl(var(--muted-foreground))" dot={false} name="VL3" />
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-secondary/50 border-border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Current Waveforms</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        i1: { label: 'IL1', color: 'hsl(var(--primary))' },
+                        i2: { label: 'IL2', color: 'hsl(var(--secondary))' },
+                        i3: { label: 'IL3', color: 'hsl(var(--muted-foreground))' },
+                      }}
+                      className="h-64"
+                    >
+                      <LineChart data={waveformData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="t" tickFormatter={(v) => `${v.toFixed(3)}s`} />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                        <Line type="monotone" dataKey="i1" stroke="hsl(var(--primary))" dot={false} name="IL1" />
+                        <Line type="monotone" dataKey="i2" stroke="hsl(var(--secondary))" dot={false} name="IL2" />
+                        <Line type="monotone" dataKey="i3" stroke="hsl(var(--muted-foreground))" dot={false} name="IL3" />
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="overview" className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

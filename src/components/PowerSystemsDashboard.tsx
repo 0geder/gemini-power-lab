@@ -228,7 +228,7 @@ export function PowerSystemsDashboard() {
 
             {/* Results Display */}
             {results && (
-              <ResultsDisplay results={results} />
+              <ResultsDisplay results={results} rawData={validationStatus === "valid" ? JSON.parse(inputData) : undefined} />
             )}
           </div>
         </div>
