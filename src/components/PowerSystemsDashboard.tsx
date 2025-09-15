@@ -110,71 +110,58 @@ export function PowerSystemsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-primary/5 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-8 mb-6">
-            <div className="relative">
-              <img 
-                src={uctLogo} 
-                alt="University of Cape Town Logo" 
-                className="h-20 w-20 object-contain animate-float hover-lift shadow-card rounded-full p-2 bg-white"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative p-4 rounded-xl bg-gradient-primary shadow-glow-primary animate-pulse-glow">
-                <Zap className="h-10 w-10 text-primary-foreground" />
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-6 mb-4">
+            <img 
+              src={uctLogo} 
+              alt="University of Cape Town Logo" 
+              className="h-16 w-16 object-contain"
+            />
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-gradient-primary">
+                <Zap className="h-8 w-8 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-                  Gemini Power Lab
-                </h1>
-                <div className="h-1 w-full bg-gradient-accent rounded-full"></div>
-              </div>
+              <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Gemini Power Lab
+              </h1>
             </div>
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Advanced AI-Powered Three-Phase Electrical Systems Analysis Platform
+          <p className="text-xl text-muted-foreground">
+            AI-Powered Three-Phase Electrical Systems Analysis
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Configuration Panel */}
           <div className="lg:col-span-1 space-y-6">
-            <Card className="bg-gradient-card border-border shadow-card hover-lift">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-accent">
-                    <Settings className="h-5 w-5 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Configuration</CardTitle>
-                    <CardDescription>Select analysis processing mode</CardDescription>
-                  </div>
+            <Card className="bg-gradient-card border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <CardTitle>Configuration</CardTitle>
                 </div>
+                <CardDescription>API settings and processing mode</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Processing Mode</Label>
-                  <div className="grid grid-cols-1 gap-3">
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Processing Mode</Label>
+                  <div className="grid grid-cols-1 gap-2">
                     {processingModes.map((mode) => (
                       <Button
                         key={mode.id}
                         variant={selectedMode === mode.id ? "default" : "secondary"}
-                        className={`justify-start h-auto p-4 transition-all duration-300 ${
-                          selectedMode === mode.id 
-                            ? "bg-gradient-primary text-primary-foreground shadow-glow-primary" 
-                            : "hover:bg-muted/80 hover:shadow-card"
-                        }`}
+                        className="justify-start h-auto p-3"
                         onClick={() => setSelectedMode(mode.id)}
                       >
-                        <div className="text-left w-full">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg">{mode.icon}</span>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span>{mode.icon}</span>
                             <span className="font-medium">{mode.name}</span>
                           </div>
-                          <div className="text-xs opacity-80 mt-1">
+                          <div className="text-xs text-muted-foreground mt-1">
                             {mode.description}
                           </div>
                         </div>
@@ -190,7 +177,7 @@ export function PowerSystemsDashboard() {
 
           {/* Data Input Panel */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-gradient-card border-border shadow-card hover-lift">
+            <Card className="bg-gradient-card border-border">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -207,7 +194,7 @@ export function PowerSystemsDashboard() {
                   <Button
                     onClick={handleProcessData}
                     disabled={isProcessing || validationStatus !== "valid"}
-                    className="bg-gradient-primary hover:bg-primary/90 shadow-glow-primary transition-all duration-300 hover:shadow-elegant hover:scale-105"
+                    className="shadow-glow-primary"
                   >
                     {isProcessing ? (
                       <>
