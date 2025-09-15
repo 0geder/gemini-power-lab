@@ -11,6 +11,7 @@ import { GeminiProcessor } from "./GeminiProcessor";
 import { DataValidator } from "./DataValidator";
 import { ExampleData } from "./ExampleData";
 import { ResultsDisplay } from "./ResultsDisplay";
+import uctLogo from "@/assets/uct_logo.jpg";
 
 interface PowerData {
   voltage_L1: number[];
@@ -113,13 +114,20 @@ export function PowerSystemsDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-lg bg-gradient-primary">
-              <Zap className="h-8 w-8 text-primary-foreground" />
+          <div className="flex items-center justify-center gap-6 mb-4">
+            <img 
+              src={uctLogo} 
+              alt="University of Cape Town Logo" 
+              className="h-16 w-16 object-contain"
+            />
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-gradient-primary">
+                <Zap className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Gemini Power Lab
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Gemini Power Lab
-            </h1>
           </div>
           <p className="text-xl text-muted-foreground">
             AI-Powered Three-Phase Electrical Systems Analysis
