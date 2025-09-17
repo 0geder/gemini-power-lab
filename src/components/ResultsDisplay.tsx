@@ -128,7 +128,7 @@ export function ResultsDisplay({ results, rawData }: ResultsDisplayProps) {
                     <ChartContainer
                       config={{
                         i1: { label: 'IL1', color: 'hsl(var(--primary))' },
-                        i2: { label: 'IL2', color: 'hsl(var(--secondary))' },
+                        i2: { label: 'IL2', color: 'hsl(200, 80%, 60%)' },
                         i3: { label: 'IL3', color: 'hsl(var(--muted-foreground))' },
                       }}
                       className="h-64"
@@ -140,7 +140,7 @@ export function ResultsDisplay({ results, rawData }: ResultsDisplayProps) {
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Legend />
                         <Line type="monotone" dataKey="i1" stroke="hsl(var(--primary))" dot={false} name="IL1" />
-                        <Line type="monotone" dataKey="i2" stroke="hsl(var(--secondary))" dot={false} name="IL2" />
+                        <Line type="monotone" dataKey="i2" stroke="hsl(200, 80%, 60%)" dot={false} name="IL2" />
                         <Line type="monotone" dataKey="i3" stroke="hsl(var(--muted-foreground))" dot={false} name="IL3" />
                       </LineChart>
                     </ChartContainer>
