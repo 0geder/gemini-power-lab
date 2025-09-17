@@ -12,3 +12,6 @@ port = 54322
 
 [functions.analyze-power-data]
 verify_jwt = false
+
+[functions.generate-decisions]
+verify_jwt = false

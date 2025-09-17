@@ -175,7 +175,7 @@ export function PowerSystemsDashboard() {
 
             <ExampleData onLoadExample={loadExampleData} />
             
-            <DecisionsPad />
+            <DecisionsPad analysisResults={results} />
           </div>
 
           {/* Data Input Panel */}

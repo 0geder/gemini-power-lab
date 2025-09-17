@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Lightbulb, Target, TrendingUp, Users, FileText, Plus, Trash2 } from "lucide-react";
+import { Brain, Lightbulb, Target, TrendingUp, Users, FileText, Plus, Trash2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Decision {
   id: string;
@@ -15,6 +16,12 @@ interface Decision {
   status: "pending" | "approved" | "rejected";
   createdAt: Date;
   notes: string;
+  reasoning?: string;
+  isAiGenerated?: boolean;
+}
+
+interface DecisionsPadProps {
+  analysisResults?: any;
 }
 
 const decisionCategories = [
@@ -60,7 +67,7 @@ const statusColors = {
   rejected: "bg-red-100 text-red-800 border-red-200"
 };
 
-export function DecisionsPad() {
+export function DecisionsPad({ analysisResults }: DecisionsPadProps) {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [activeCategory, setActiveCategory] = useState("technical");
   const [newDecision, setNewDecision] = useState({
@@ -70,6 +77,7 @@ export function DecisionsPad() {
     notes: ""
   });
   const [showNewForm, setShowNewForm] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
   const addDecision = () => {
@@ -116,6 +124,59 @@ export function DecisionsPad() {
     });
   };
 
+  const generateAIDecisions = async () => {
+    if (!analysisResults) {
+      toast({
+        title: "No Analysis Data",
+        description: "Please analyze power data first to generate AI suggestions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-decisions', {
+        body: { 
+          analysisResults,
+          category: activeCategory 
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const aiDecisions: Decision[] = data.decisions.map((d: any) => ({
+        id: `ai-${Date.now()}-${Math.random()}`,
+        title: d.title,
+        description: d.description,
+        priority: d.priority,
+        status: "pending" as const,
+        createdAt: new Date(),
+        notes: "",
+        reasoning: d.reasoning,
+        isAiGenerated: true
+      }));
+
+      setDecisions([...aiDecisions, ...decisions]);
+      
+      toast({
+        title: "AI Suggestions Generated",
+        description: `Added ${aiDecisions.length} AI-suggested decisions.`,
+      });
+    } catch (error) {
+      console.error('Failed to generate AI decisions:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate AI decisions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <Card className="bg-gradient-card border-border">
       <CardHeader className="pb-3">
@@ -124,14 +185,25 @@ export function DecisionsPad() {
             <FileText className="h-5 w-5 text-primary" />
             <CardTitle>Decisions Pad</CardTitle>
           </div>
-          <Button
-            onClick={() => setShowNewForm(!showNewForm)}
-            size="sm"
-            variant="outline"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Decision
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={generateAIDecisions}
+              size="sm"
+              variant="default"
+              disabled={isGenerating || !analysisResults}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isGenerating ? "Generating..." : "AI Suggestions"}
+            </Button>
+            <Button
+              onClick={() => setShowNewForm(!showNewForm)}
+              size="sm"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Decision
+            </Button>
+          </div>
         </div>
         <CardDescription>
           Track and manage secondary decision making processes
@@ -205,21 +277,32 @@ export function DecisionsPad() {
                     <Card key={decision.id} className="border-l-4 border-l-primary">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{decision.title}</h4>
-                              <Badge className={priorityColors[decision.priority]}>
-                                {decision.priority}
-                              </Badge>
-                              <Badge className={statusColors[decision.status]}>
-                                {decision.status}
-                              </Badge>
-                            </div>
-                            {decision.description && (
-                              <p className="text-sm text-muted-foreground">
-                                {decision.description}
-                              </p>
-                            )}
+                           <div className="space-y-2 flex-1">
+                             <div className="flex items-center gap-2">
+                               <h4 className="font-medium">{decision.title}</h4>
+                               {decision.isAiGenerated && (
+                                 <Badge variant="secondary" className="text-xs">
+                                   <Sparkles className="h-3 w-3 mr-1" />
+                                   AI
+                                 </Badge>
+                               )}
+                               <Badge className={priorityColors[decision.priority]}>
+                                 {decision.priority}
+                               </Badge>
+                               <Badge className={statusColors[decision.status]}>
+                                 {decision.status}
+                               </Badge>
+                             </div>
+                             {decision.description && (
+                               <p className="text-sm text-muted-foreground">
+                                 {decision.description}
+                               </p>
+                             )}
+                             {decision.reasoning && (
+                               <p className="text-xs text-muted-foreground italic">
+                                 <strong>Reasoning:</strong> {decision.reasoning}
+                               </p>
+                             )}
                             <div className="flex gap-2 text-xs">
                               <span className="text-muted-foreground">
                                 {decision.createdAt.toLocaleDateString()}
