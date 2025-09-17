@@ -11,6 +11,7 @@ import { GeminiProcessor } from "./GeminiProcessor";
 import { DataValidator } from "./DataValidator";
 import { ExampleData } from "./ExampleData";
 import { ResultsDisplay } from "./ResultsDisplay";
+import { DecisionsPad } from "./DecisionsPad";
 import uctLogo from "@/assets/uct_logo.jpg";
 
 interface PowerData {
@@ -173,6 +174,8 @@ export function PowerSystemsDashboard() {
             </Card>
 
             <ExampleData onLoadExample={loadExampleData} />
+            
+            <DecisionsPad />
           </div>
 
           {/* Data Input Panel */}
